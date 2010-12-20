@@ -18,7 +18,6 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
             if ($statement instanceof PHP_Parser_Node_Function) {
                 $arguments = array();
                 foreach ($statement->arguments as $argument) {
-                    var_dump($argument);
                     $arguments[] = substr($argument['variable']->arg->image, 1);
                 }
                 $buffer->putln(sprintf("%s.prototype.%s = function(%s) {", $node->name, $statement->name, implode(', ', $arguments)));
