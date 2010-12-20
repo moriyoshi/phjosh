@@ -16,7 +16,7 @@ class MyHandlerImpl implements PHP_Parser_Handler {
     public function do_add_list_element() { var_dump("do_add_list_element", func_get_args()); }
     public function do_add_static_array_element() { var_dump("do_add_static_array_element", func_get_args()); }
     public function do_add_string() { var_dump("do_add_string", func_get_args()); }
-    public function do_assign() { var_dump("do_assign", func_get_args()); }
+    public function do_assign(&$retval, $lhs, $rhs) { var_dump("do_assign", func_get_args()); }
     public function do_begin_catch() { var_dump("do_begin_catch", func_get_args()); }
     public function do_begin_class_declaration($a, $b, $c) { var_dump("do_begin_class_declaration", func_get_args()); }
     public function do_begin_class_member_function_call() { var_dump("do_begin_class_member_function_call", func_get_args()); }

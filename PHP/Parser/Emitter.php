@@ -60,7 +60,9 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
 
     public function do_add_string() {}
 
-    public function do_assign() {}
+    public function do_assign(&$retval, $lhs, $rhs) {
+        $retval = new PHP_Parser_Node_Operator($lhs->lineno, $lhs->col, ZEND_ASSIGN, $lhs, $rhs);
+    }
 
     public function do_begin_catch() {}
 

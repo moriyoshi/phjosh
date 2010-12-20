@@ -110,6 +110,7 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
             ZEND_IS_NOT_EQUAL => "!=",
             ZEND_IS_SMALLER => "<",
             ZEND_IS_SMALLER_OR_EQUAL => "<=",
+            ZEND_ASSIGN => "=",
         );
         $node->lhs->accept($this);
         $this->buffer->put(" {$op_map[$node->op]} ");

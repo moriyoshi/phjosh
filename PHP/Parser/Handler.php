@@ -10,7 +10,7 @@ interface PHP_Parser_Handler {
     function do_add_list_element();
     function do_add_static_array_element();
     function do_add_string();
-    function do_assign();
+    function do_assign(&$retval, $lhs, $rhs);
     function do_begin_catch();
     function do_begin_class_declaration($type, $name, $extends);
     function do_begin_class_member_function_call();
