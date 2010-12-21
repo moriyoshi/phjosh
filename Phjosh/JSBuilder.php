@@ -16,18 +16,23 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         }
         foreach ($node->statements as $n => $statement) {
             if ($statement instanceof PHP_Parser_Node_Function) {
-                $arguments = array();
-                foreach ($statement->arguments as $argument) {
-                    $arguments[] = substr($argument['variable']->arg->image, 1);
-                }
-                $buffer->putln(sprintf("%s.prototype.%s = function(%s) {", $node->name, $statement->name, implode(', ', $arguments)));
-                $buffer->indent();
-                $this->visitStatements($statement->statements);
-                $buffer->dedent();
-                $buffer->put("}");
+                $buffer->put(sprintf("%s.prototype.%s = ", $node->name, $statement->name));
+                $this->visitFunctionBody($statement);
                 $buffer->putln(";");
             }
         }
+    }
+
+    public function visitFunctionBody($node) {
+        $buffer = $this->buffer;
+        $arguments = array();
+        foreach ($node->arguments as $argument)
+            $arguments[] = substr($argument['variable']->arg->image, 1);
+        $buffer->putln(sprintf("function(%s) {", implode(', ', $arguments)));
+        $buffer->indent();
+        $this->visitStatements($node->statements);
+        $buffer->dedent();
+        $buffer->put("}");
     }
 
     public function visitEcho($node) {
@@ -37,16 +42,8 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
     }
 
     public function visitFunction($node) {
-        $arguments = array();
-        $buffer = $this->buffer;
-        foreach ($node->arguments as $argument) {
-            $arguments[] = substr($argument['variable']->arg->image, 1);
-        }
-        $buffer->putln(sprintf("var %s = function(%s) {", $node->name, implode(', ', $arguments)));
-        $buffer->indent();
-        $this->visitStatements($node->statements);
-        $buffer->dedent();
-        $buffer->put("}");
+        $this->buffer->put(sprintf("var %s = ", $node->name));
+        $this->visitFunctionBody($node);
     }
     
 
