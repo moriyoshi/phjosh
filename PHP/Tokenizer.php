@@ -11,7 +11,7 @@ class PHP_Tokenizer {
     public $last;
     public $lineno;
     public $col;
-    public $last_doc_comment;
+    public $last_doc_comment = false;
 
     private static function __cinit() {
         $rc = new ReflectionClass('PHP_Parser');

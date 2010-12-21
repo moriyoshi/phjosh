@@ -7,8 +7,12 @@ class PHP_Parser_Node {
     public $op_type = false;
 	public $constant = false;
 
-    function __construct($lineno = 0, $col = 0) {
+    public function __construct($lineno = 0, $col = 0) {
         $this->lineno = $lineno;
         $this->col = $col;
+    }
+
+    public function accept($visitor) {
+        throw new Exception("not implemented");
     }
 }

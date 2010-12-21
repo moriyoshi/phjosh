@@ -8,8 +8,8 @@ require_once 'PHP/Parser/Emitter.php';
 require_once 'Phjosh/Buffer.php';
 require_once 'Phjosh/JSBuilder.php';
 
-$emitter = new PHP_Parser_Emitter();
 $lex = new PHP_Tokenizer(file_get_contents($argv[1]));
+$emitter = new PHP_Parser_Emitter($lex);
 $parser = new PHP_Parser($emitter);
 $parser->yyparse($lex);
 $buffer = new Phjosh_Buffer();

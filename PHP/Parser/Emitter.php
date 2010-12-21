@@ -13,6 +13,7 @@ require_once 'PHP/Parser/Node/ArrayDereference.php';
 require_once 'PHP/Parser/Node/Invoke.php';
 
 class PHP_Parser_Emitter implements PHP_Parser_Handler {
+    public $lex;
     public $statements = false;
     private $pending = false;
     private $statements_stack = array();
@@ -20,7 +21,8 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     private $object_stack = array();
     public $access_type = false;
 
-    public function __construct() {
+    public function __construct($lex) {
+        $this->lex = $lex;
         $this->statements = array();
     }
 
@@ -70,6 +72,8 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
         $this->push_pending();
         $this->push_statements();
         $this->pending = new PHP_Parser_Node_Class($name->lineno, $name->col);
+        $this->pending->doc_comment = $this->lex->last_doc_comment;
+        $this->lex->last_doc_comment = false;
         $this->pending->name = $name->image;
         $this->pending->flags = $type->EA;
         $this->pending->extends = $extends->op_type == IS_UNUSED ? false: $extends->image;
@@ -90,6 +94,8 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
         $this->pending->name = $name->image;
         $this->pending->return_ref = $return_ref == ZEND_RETURN_REF;
         $this->pending->flags = $flags->constant;
+        $this->pending->doc_comment = $this->lex->last_doc_comment;
+        $this->lex->last_doc_comment = false;
     }
 
     public function do_begin_lambda_function_declaration() {}
@@ -229,7 +235,7 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function do_new_list_end() {}
 
     public function do_pass_param($param, $op, $index) {
-        $this->pending[$index] = array(
+        $this->pending[] = array(
             'is_ref' => $op == ZEND_SEND_REF,
             'value' => $param
         );

@@ -7,6 +7,7 @@ class PHP_Parser_Node_Class extends PHP_Parser_Node {
     public $extends = false;
 	public $implements = array();
     public $statements = array();
+    public $doc_comment = "";
 
     public function __construct($lineno, $col) {
         parent::__construct($lineno, $col);

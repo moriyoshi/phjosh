@@ -17,15 +17,19 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
 
     public function visitClass($node) {
         $buffer = $this->buffer;
+        if ($node->doc_comment)
+            $buffer->putln(self::normalizeDocComment($node->doc_comment));
         $buffer->putln(sprintf("var %s = function() { this.__class__ = callee; this.__construct.apply(this, arguments); };", $node->name));
         if ($node->extends) {
             $buffer->putln(sprintf("%s.prototype = new %s();", $node->extends));
         }
         foreach ($node->statements as $n => $statement) {
             if ($statement instanceof PHP_Parser_Node_Function) {
+                if ($statement->doc_comment)
+                    $buffer->putln(self::normalizeDocComment($statement->doc_comment));
                 $buffer->put(sprintf("%s.prototype.%s = ", $node->name, $statement->name));
                 $this->visitFunctionBody($statement);
-                $buffer->putln(";");
+                $buffer->putln(";\n");
             }
         }
     }
@@ -49,15 +53,18 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
     }
 
     public function visitFunction($node) {
+        if ($node->doc_comment)
+            $buffer->putln(self::normalizeDocComment($node->doc_comment));
         $this->buffer->put(sprintf("var %s = ", $node->name));
         $this->visitFunctionBody($node);
     }
-    
 
     public function visitStatements($nodes) {
         foreach ($nodes as $node) {
             $node->accept($this);
             $this->buffer->putln(";");
+            if ($node instanceof PHP_Parser_Node_Function)
+                $this->buffer->putln("");
         }
     }
 
@@ -141,6 +148,10 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
 
     public function visitVariable($node) {
         $this->buffer->put(substr($node->arg->image, 1));
+    }
+
+    private static function normalizeDocComment($str) {
+        return preg_replace('/^[ \t]* \*/m', ' *', $str);
     }
 
     private static function escape($str) {
