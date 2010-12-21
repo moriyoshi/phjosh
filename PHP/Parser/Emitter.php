@@ -212,7 +212,7 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function do_implements_trait() {}
 
     public function do_include_or_eval($code, &$retval, $param) {
-        $retval = new PHP_Parser_Node_Include($param->lineno, $param->col, $param);
+        $retval = new PHP_Parser_Node_Include($param->lineno, $param->col, $code, $param);
     }
 
     public function do_indirect_references(&$retval, $count, $var) {}

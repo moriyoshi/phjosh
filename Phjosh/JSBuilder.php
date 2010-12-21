@@ -2,6 +2,13 @@
 require_once 'PHP/Parser/NodeVisitor.php';
 
 class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
+    public $include_functions = array(
+        ZEND_INCLUDE => "include",
+        ZEND_INCLUDE_ONCE => "include",
+        ZEND_REQUIRE => "require",
+        ZEND_REQUIRE_ONCE => "require"
+    );
+
     public function __construct($buffer) {
         $this->buffer = $buffer;
     }
@@ -54,7 +61,12 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         }
     }
 
-    public function visitInclude($node) {}
+    public function visitInclude($node) {
+        $this->buffer->put($this->include_functions[$node->type]);
+        $this->buffer->put("(");
+        $node->arg->accept($this);
+        $this->buffer->put(")");
+    }
 
     public function visitInvoke($node) {
         $buffer = $this->buffer;
@@ -122,10 +134,16 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
     }
 
     public function visitString($node) {
-        $this->buffer->put($node->image);
+        $this->buffer->put("\"");
+        $this->buffer->put(self::escape($node->image));
+        $this->buffer->put("\"");
     }
 
     public function visitVariable($node) {
         $this->buffer->put(substr($node->arg->image, 1));
+    }
+
+    private static function escape($str) {
+        return preg_replace("/([\\x00-\\x1f])/e", 'oct(ord($l))', addcslashes($str, "'\"\\\b\f\n\r\t\x7f"));
     }
 }

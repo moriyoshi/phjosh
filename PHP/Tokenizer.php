@@ -11,6 +11,7 @@ class PHP_Tokenizer {
     public $last;
     public $lineno;
     public $col;
+    public $last_doc_comment;
 
     private static function __cinit() {
         $rc = new ReflectionClass('PHP_Parser');
@@ -53,7 +54,6 @@ class PHP_Tokenizer {
             }
             switch ($tokval) {
             case T_STRING:
-            case T_CONSTANT_ENCAPSED_STRING:
             case T_NUM_STRING:
             case T_INLINE_HTML:
             case T_ENCAPSED_AND_WHITESPACE:
@@ -61,6 +61,11 @@ class PHP_Tokenizer {
             case T_VARIABLE:
                 $yylval = new PHP_Parser_Node_String($lineno, $this->col, $image);
                 break;
+
+            case T_CONSTANT_ENCAPSED_STRING:
+                $yylval = new PHP_Parser_Node_String($lineno, $this->col, stripcslashes(substr($image, 1, -1)));
+                break;
+
             case T_LNUMBER:
                 $yylval = new PHP_Parser_Node_Number($lineno, $this->col, $image, true);
                 break;
@@ -77,9 +82,11 @@ class PHP_Tokenizer {
             $this->lineno = $lineno;
             switch ($tokval) {
             case T_COMMENT:
-            case T_DOC_COMMENT:
             case T_OPEN_TAG:
             case T_WHITESPACE:
+                continue;
+            case T_DOC_COMMENT:
+                $this->last_doc_comment = $image;
                 continue;
             case T_CLOSE_TAG:
                 $tokval = ord(';');
