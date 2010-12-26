@@ -20,7 +20,7 @@ interface PHP_Parser_Handler {
     function do_begin_method_call($deref_node);
     function do_begin_namespace();
     function do_begin_new_object();
-    function do_begin_qm_op();
+    function do_begin_qm_op($cond, $question);
     function do_begin_silence();
     function do_begin_variable_parse();
     function do_binary_op($op, &$retval, $lhs, $rhs);
@@ -56,7 +56,7 @@ interface PHP_Parser_Handler {
     function do_extended_fcall_end();
     function do_extended_info();
     function do_fetch_class(&$retval, $name);
-    function do_fetch_constant();
+    function do_fetch_constant(&$retval, $class, $name, $phase);
     function do_fetch_global_variable();
     function do_fetch_lexical_variable();
     function do_fetch_property(&$retval, $reference, $var);
@@ -93,8 +93,8 @@ interface PHP_Parser_Handler {
     function do_pre_incdec();
     function do_print();
     function do_push_object($node);
-    function do_qm_false();
-    function do_qm_true();
+    function do_qm_false(&$retval, $false_expr, $question, $semicolon);
+    function do_qm_true($true_expr, $question, $semicolon);
     function do_receive_arg($op, $var, &$retval, $default, $typehint, $varname, $is_ref);
     function do_return($value, $do_end_vparse);
     function do_shell_exec();

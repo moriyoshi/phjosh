@@ -2,6 +2,8 @@
 require_once 'PHP/Parser.php';
 require_once 'PHP/Parser/Node.php';
 require_once 'PHP/Parser/Node/String.php';
+require_once 'PHP/Parser/Node/Symbol.php';
+require_once 'PHP/Parser/Node/VariableName.php';
 require_once 'PHP/Parser/Node/Number.php';
 
 class PHP_Tokenizer {
@@ -53,15 +55,20 @@ class PHP_Tokenizer {
                 $lineno = $this->lineno;
             }
             switch ($tokval) {
-            case T_STRING:
             case T_NUM_STRING:
             case T_INLINE_HTML:
             case T_ENCAPSED_AND_WHITESPACE:
-            case T_STRING_VARNAME:
-            case T_VARIABLE:
                 $yylval = new PHP_Parser_Node_String($lineno, $this->col, $image);
                 break;
-
+            case T_STRING:
+                $yylval = new PHP_Parser_Node_Symbol($lineno, $this->col, $image);
+                break;
+            case T_STRING_VARNAME:
+                $yylval = new PHP_Parser_Node_VariableName($lineno, $this->col, $image);
+                break;
+            case T_VARIABLE:
+                $yylval = new PHP_Parser_Node_VariableName($lineno, $this->col, substr($image, 1));
+                break;
             case T_CONSTANT_ENCAPSED_STRING:
                 $yylval = new PHP_Parser_Node_String($lineno, $this->col, stripcslashes(substr($image, 1, -1)));
                 break;

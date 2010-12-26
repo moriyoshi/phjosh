@@ -146,8 +146,34 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         $this->buffer->put("\"");
     }
 
+    public function visitSymbol($node) {
+        $this->buffer->put($node->image);
+    }
+
+    public function visitVariableName($node) {
+        $this->buffer->put($node->image);
+    }
+
     public function visitVariable($node) {
-        $this->buffer->put(substr($node->arg->image, 1));
+        if ($node->arg instanceof PHP_Parser_Node_VariableName) {
+            $this->buffer->put($node->arg->image);
+        } else {
+            $this->buffer->put("$(");
+            $node->arg->accept($this);
+            $this->buffer->put(")");
+        }
+    }
+
+    public function visitConstant($node) {
+        $this->buffer->put($node->arg->image);
+    }
+
+    public function visitConditionalOperator($node) {
+        $node->condition->accept($this);
+        $this->buffer->put(" ? ");
+        $node->true->accept($this);
+        $this->buffer->put(" : ");
+        $node->false->accept($this);
     }
 
     private static function normalizeDocComment($str) {

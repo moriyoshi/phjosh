@@ -5,7 +5,9 @@ require_once 'PHP/Parser/Node/Include.php';
 require_once 'PHP/Parser/Node/Class.php';
 require_once 'PHP/Parser/Node/Function.php';
 require_once 'PHP/Parser/Node/Variable.php';
+require_once 'PHP/Parser/Node/Constant.php';
 require_once 'PHP/Parser/Node/Operator.php';
+require_once 'PHP/Parser/Node/ConditionalOperator.php';
 require_once 'PHP/Parser/Node/Return.php';
 require_once 'PHP/Parser/Node/Echo.php';
 require_once 'PHP/Parser/Node/ObjectDereference.php';
@@ -107,7 +109,13 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
 
     public function do_begin_namespace() {}
     public function do_begin_new_object() {}
-    public function do_begin_qm_op() {}
+
+    public function do_begin_qm_op($cond, $question) {
+        $this->push_pending();
+        $this->pending = new PHP_Parser_Node_ConditionalOperator($question->lineno, $question->col);
+        $this->pending->condition = $cond;
+    }
+
     public function do_begin_silence() {}
     public function do_begin_variable_parse() {}
 
@@ -183,7 +191,10 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
         $retval = $name;
     }
 
-    public function do_fetch_constant() {}
+    public function do_fetch_constant(&$retval, $class, $name, $phase) {
+         $retval = new PHP_Parser_Node_Constant($name->lineno, $name->col, $name);
+    }
+
     public function do_fetch_global_variable() {}
     public function do_fetch_lexical_variable() {}
 
@@ -251,8 +262,16 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function do_push_object($node) {
         $this->object_stack[] = $node;
     }
-    public function do_qm_false() {}
-    public function do_qm_true() {}
+
+    public function do_qm_false(&$retval, $false_expr, $question, $semicolon) {
+        $this->pending->false = $false_expr;
+        $retval = $this->pending;
+        $this->pop_pending();
+    }
+
+    public function do_qm_true($true_expr, $question, $semicolon) {
+        $this->pending->true = $true_expr;
+    }
 
     public function do_receive_arg($op, $var, &$retval, $default, $typehint, $varname, $is_ref) {
         assert($this->pending);
