@@ -1,18 +1,22 @@
 <?php
 
 require_once 'PHP/Parser/Handler.php';
+require_once 'PHP/Parser/Node/Statements.php';
 require_once 'PHP/Parser/Node/Include.php';
 require_once 'PHP/Parser/Node/Class.php';
 require_once 'PHP/Parser/Node/Function.php';
 require_once 'PHP/Parser/Node/Variable.php';
 require_once 'PHP/Parser/Node/Constant.php';
-require_once 'PHP/Parser/Node/Operator.php';
+require_once 'PHP/Parser/Node/BinaryOperator.php';
+require_once 'PHP/Parser/Node/UnaryOperator.php';
 require_once 'PHP/Parser/Node/ConditionalOperator.php';
 require_once 'PHP/Parser/Node/Return.php';
 require_once 'PHP/Parser/Node/Echo.php';
 require_once 'PHP/Parser/Node/ObjectDereference.php';
 require_once 'PHP/Parser/Node/ArrayDereference.php';
 require_once 'PHP/Parser/Node/Invoke.php';
+require_once 'PHP/Parser/Node/IfStatement.php';
+require_once 'PHP/Parser/Node/ForStatement.php';
 
 class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public $lex;
@@ -29,11 +33,13 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     }
 
     private function push_statements() {
+        $a = debug_backtrace();
         $this->statements_stack[] = $this->statements;
         $this->statements = array();
     }
 
     private function pop_statements() {
+        $a = debug_backtrace();
         $this->statements = array_pop($this->statements_stack);
     }
 
@@ -65,7 +71,7 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function do_add_string() {}
 
     public function do_assign(&$retval, $lhs, $rhs) {
-        $retval = new PHP_Parser_Node_Operator($lhs->lineno, $lhs->col, ZEND_ASSIGN, $lhs, $rhs);
+        $retval = new PHP_Parser_Node_BinaryOperator($lhs->lineno, $lhs->col, ZEND_ASSIGN, $lhs, $rhs);
     }
 
     public function do_begin_catch() {}
@@ -120,7 +126,7 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function do_begin_variable_parse() {}
 
     public function do_binary_op($op, &$retval, $lhs, $rhs) {
-        $retval = new PHP_Parser_Node_Operator($lhs->lineno, $lhs->col, $op, $lhs, $rhs);
+        $retval = new PHP_Parser_Node_BinaryOperator($lhs->lineno, $lhs->col, $op, $lhs, $rhs);
     }
 
     public function do_boolean_and_begin() {}
@@ -149,7 +155,7 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
 
     public function do_end_class_declaration($type, $name) {
         assert($this->pending);
-        $this->pending->statements = $this->statements;
+        $this->pending->statements = $this->createStatementsNode();
         $this->pop_statements();
         $this->statements[] = $this->pending;
         $this->pop_pending();
@@ -172,7 +178,7 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     }
 
     public function do_end_function_declaration() {
-        $this->pending->statements = $this->statements;
+        $this->pending->statements = $this->createStatementsNode();
         $this->pop_statements();
         $this->statements[] = $this->pending;
         $this->pop_pending();
@@ -204,9 +210,32 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
 
     public function do_fetch_static_variable() {}
     public function do_first_catch() {}
-    public function do_for_end() {}
+
+    public function do_for_before_statement($semicolon1, $semicolon2) {
+        $this->pending->next = $this->createStatementsNode();
+        $this->pop_statements();
+        $this->push_statements();
+    }
+
+    public function do_for_cond($cond, $semicolon2) {
+        $this->push_pending();
+        $this->pending = new PHP_Parser_Node_ForStatement($semicolon2->lineno, $semicolon2->col);
+        $this->pending->condition = $cond;
+        $this->pending->initial = array_pop($this->statements);
+        $this->push_statements();
+    }
+
+    public function do_for_end($semicolon2) {
+        $this->pending->statements = $this->createStatementsNode();
+        $this->pop_statements();
+        $this->statements[] = $this->pending;
+        $this->pop_pending();
+    }
+
     public function do_foreach_begin() {}
+
     public function do_foreach_cont() {}
+
     public function do_foreach_end() {}
 
     public function do_free($expr) {
@@ -215,9 +244,41 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
 
     public function do_goto() {}
     public function do_halt_compiler_register() {}
-    public function do_if_after_statement() {}
-    public function do_if_cond() {}
-    public function do_if_end() {}
+
+    public function do_if_after_statement($rparen, $close) {
+        $this->pending->statements = $this->createStatementsNode();
+        $this->pop_statements();
+        if (!$close) {
+            $else = $this->pending;
+            $this->pop_pending();
+            $target = $this->pending;
+            while ($target->otherwise)
+                $target = $target->otherwise;
+            $target->otherwise = $else;
+        } else {
+            $this->push_statements();
+        }
+    }
+
+    public function do_if_cond($cond, $rparen) {
+        $this->push_pending();
+        $this->pending = new PHP_Parser_Node_IfStatement($rparen->lineno, $rparen->col);
+        $this->pending->condition = $cond;
+        $this->push_statements();
+    }
+
+    public function do_if_end() {
+        if ($this->statements) {
+            $else = $this->createStatementsNode();
+            $target = $this->pending;
+            while ($target->otherwise)
+                $target = $target->otherwise;
+            $target->otherwise = $else;
+        }
+        $this->pop_statements();
+        $this->statements[] = $this->pending;
+        $this->pop_pending();
+    }
 
     public function do_implements_interface($interface) {
         assert($this->pending);
@@ -256,8 +317,14 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
         $node = array_pop($this->object_stack);
     }
 
-    public function do_post_incdec() {}
-    public function do_pre_incdec() {}
+    public function do_post_incdec(&$retval, $node, $op) {
+        $retval = new PHP_Parser_Node_UnaryOperator($node->lineno, $node->col, $op, $node);
+    }
+
+    public function do_pre_incdec(&$retval, $node, $op) {
+        $retval = new PHP_Parser_Node_UnaryOperator($node->lineno, $node->col, $op, $node);
+    }
+
     public function do_print() {}
     public function do_push_object($node) {
         $this->object_stack[] = $node;
@@ -293,7 +360,11 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function do_throw() {}
     public function do_ticks() {}
     public function do_try() {}
-    public function do_unary_op() {}
+
+    public function do_unary_op($op, &$retval, $node) {
+        $retval = new PHP_Parser_Node_UnaryOperator($node->lineno, $node->col, $op, $node);
+    }
+
     public function do_use() {}
     public function do_while_cond() {}
     public function do_while_end() {}
@@ -312,5 +383,15 @@ class PHP_Parser_Emitter implements PHP_Parser_Handler {
     public function prepare_trait_alias() {}
     public function prepare_trait_precedence() {}
     public function verify_namespace() {}
+
+    public function getTopStatements() {
+        return $this->createStatementsNode();
+    }
+
+    private function createStatementsNode() {
+        return count($this->statements) == 1 ?
+            $this->statements[0]:
+            new PHP_Parser_Node_Statements($this->statements);
+    }
 }
 

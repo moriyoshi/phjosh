@@ -1,7 +1,7 @@
 <?php
 require_once 'PHP/Parser/Node.php';
 
-class PHP_Parser_Node_Operator extends PHP_Parser_Node {
+class PHP_Parser_Node_BinaryOperator extends PHP_Parser_Node {
     public $op;
     public $lhs;
     public $rhs;
@@ -14,8 +14,6 @@ class PHP_Parser_Node_Operator extends PHP_Parser_Node {
     }
 
     public function accept($visitor) {
-        $visitor->visitOperator($this); 
+        $visitor->visitBinaryOperator($this); 
     }
 }
-
-

@@ -66,6 +66,10 @@ define('ZEND_IS_EQUAL',             17);
 define('ZEND_IS_NOT_EQUAL',         18);
 define('ZEND_IS_SMALLER',           19);
 define('ZEND_IS_SMALLER_OR_EQUAL',  20);
+define('ZEND_PRE_INC',              34);
+define('ZEND_PRE_DEC',              35);
+define('ZEND_POST_INC',             36);
+define('ZEND_POST_DEC',             37);
 define('ZEND_ASSIGN',               38);
 define('ZEND_ASSIGN_REF',           39);
 

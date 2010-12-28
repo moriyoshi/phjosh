@@ -5,11 +5,13 @@ require_once 'PHP/Parser/Node/ConditionalOperator.php';
 require_once 'PHP/Parser/Node/Constant.php';
 require_once 'PHP/Parser/Node/Echo.php';
 require_once 'PHP/Parser/Node/Function.php';
+require_once 'PHP/Parser/Node/IfStatement.php';
 require_once 'PHP/Parser/Node/Include.php';
 require_once 'PHP/Parser/Node/Invoke.php';
 require_once 'PHP/Parser/Node/Number.php';
 require_once 'PHP/Parser/Node/ObjectDereference.php';
-require_once 'PHP/Parser/Node/Operator.php';
+require_once 'PHP/Parser/Node/BinaryOperator.php';
+require_once 'PHP/Parser/Node/UnaryOperator.php';
 require_once 'PHP/Parser/Node/Return.php';
 require_once 'PHP/Parser/Node/String.php';
 require_once 'PHP/Parser/Node/Symbol.php';
@@ -33,7 +35,9 @@ interface PHP_Parser_NodeVisitor {
 
     function visitObjectDereference($node);
 
-    function visitOperator($node);
+    function visitBinaryOperator($node);
+
+    function visitUnaryOperator($node);
 
     function visitReturn($node);
 
@@ -48,4 +52,10 @@ interface PHP_Parser_NodeVisitor {
     function visitConstant($node);
 
     function visitConditionalOperator($node);
+
+    function visitIfStatement($node);
+
+    function visitForStatement($node);
+
+    function visitStatements($node);
 }

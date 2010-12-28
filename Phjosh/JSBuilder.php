@@ -38,10 +38,10 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         $buffer = $this->buffer;
         $arguments = array();
         foreach ($node->arguments as $argument)
-            $arguments[] = substr($argument['variable']->arg->image, 1);
+            $arguments[] = $argument['variable']->arg->image;
         $buffer->putln(sprintf("function(%s) {", implode(', ', $arguments)));
         $buffer->indent();
-        $this->visitStatements($node->statements);
+        $this->renderStatements($node->statements);
         $buffer->dedent();
         $buffer->put("}");
     }
@@ -59,10 +59,13 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         $this->visitFunctionBody($node);
     }
 
-    public function visitStatements($nodes) {
-        foreach ($nodes as $node) {
+    public function visitStatements($node) {
+        if (!($node instanceof PHP_Parser_Node_Statements))
+            throw new Exception();
+        foreach ($node->statements as $node) {
             $node->accept($this);
-            $this->buffer->putln(";");
+            if (!($node instanceof PHP_Parser_Node_Statement))
+                $this->buffer->putln(";");
             if ($node instanceof PHP_Parser_Node_Function)
                 $this->buffer->putln("");
         }
@@ -103,8 +106,8 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         $this->buffer->put($node->var->image);
     }
 
-    public function visitOperator($node) {
-        $op_map = array(
+    public function visitBinaryOperator($node) {
+        static $op_map = array(
             ZEND_ADD => "+",
             ZEND_SUB => "-",
             ZEND_MUL => "*",
@@ -116,8 +119,6 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
             ZEND_BW_OR => "|",
             ZEND_BW_AND => "&",
             ZEND_BW_XOR => "^",
-            ZEND_BW_NOT => "~",
-            ZEND_BOOL_NOT => "!",
             ZEND_BOOL_XOR => "^",
             ZEND_IS_IDENTICAL => "===",
             ZEND_IS_NOT_IDENTICAL => "!==",
@@ -131,6 +132,29 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         $this->buffer->put(" {$op_map[$node->op]} ");
         $node->rhs->accept($this);
     }
+
+    public function visitUnaryOperator($node) {
+        switch ($node->op) {
+        case ZEND_POST_INC:
+            $node->operand->accept($this);
+            $this->buffer->put("++");
+            break;
+        case ZEND_POST_DEC:
+            $node->operand->accept($this);
+            $this->buffer->put("--");
+            break;
+        default:
+            static $op_map = array(
+                ZEND_BW_NOT => "~",
+                ZEND_BOOL_NOT => "!",
+                ZEND_PRE_INC => "++",
+                ZEND_PRE_DEC => "--",
+            );
+            $this->buffer->put("{$op_map[$node->op]}");
+            $node->operand->accept($this);
+        }
+    }
+
 
     public function visitReturn($node) {
         $this->buffer->put("return");
@@ -174,6 +198,51 @@ class Phjosh_JSBuilder implements PHP_Parser_NodeVisitor {
         $node->true->accept($this);
         $this->buffer->put(" : ");
         $node->false->accept($this);
+    }
+
+    public function renderStatements($node) {
+        if ($node instanceof PHP_Parser_Node_Statements) {
+            $node->accept($this);
+        } else {
+            $node->accept($this);
+            if (!($node instanceof PHP_Parser_Node_Statement))
+                $this->buffer->putln(";");
+        }
+    }
+
+    public function visitIfStatement($node) {
+        $this->buffer->put("if (");
+        $node->condition->accept($this);
+        $this->buffer->putln(") {");
+        $this->buffer->indent();
+        $this->renderStatements($node->statements);
+        $this->buffer->dedent();
+        if ($node->otherwise) {
+            if ($node->otherwise instanceof PHP_Parser_Node_IfStatement) {
+                $this->buffer->put("} else ");
+                $node->otherwise->accept($this);
+            } else {
+                $this->buffer->putln("} else {");
+                $this->buffer->indent();
+                $this->renderStatements($node->otherwise);
+                $this->buffer->dedent();
+                $this->buffer->putln("}");
+            }
+        }
+    }
+
+    public function visitForStatement($node) {
+        $this->buffer->put("for (");
+        $node->initial->accept($this);
+        $this->buffer->put("; ");
+        $node->condition->accept($this);
+        $this->buffer->put("; ");
+        $node->next->accept($this);
+        $this->buffer->putln(") {");
+        $this->buffer->indent();
+        $this->renderStatements($node->statements);
+        $this->buffer->dedent();
+        $this->buffer->putln("}");
     }
 
     private static function normalizeDocComment($str) {

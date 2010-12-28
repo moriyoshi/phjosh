@@ -14,7 +14,7 @@ $parser = new PHP_Parser($emitter);
 $parser->yyparse($lex);
 $buffer = new Phjosh_Buffer();
 $builder = new Phjosh_JSBuilder($buffer);
-$builder->visitStatements($emitter->statements);
+$emitter->getTopStatements()->accept($builder);
 echo $buffer;
 
 exit(0);

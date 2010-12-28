@@ -1,7 +1,7 @@
 <?php
-require_once 'PHP/Parser/Node.php';
+require_once 'PHP/Parser/Node/Statement.php';
 
-class PHP_Parser_Node_IfStatement extends PHP_Parser_Node {
+class PHP_Parser_Node_IfStatement extends PHP_Parser_Node_Statement {
     public $condition;
     public $statements;
     public $otherwise;
